@@ -4,6 +4,11 @@ import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+import { StreamVideo } from '@stream-io/video-react-native-sdk';
+import { StreamClientProvider } from '../lib/stream';
+import { AuthProvider } from '../context/AuthProvider';
+import { CallsProvider } from '../context/CallsProvider';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -20,7 +25,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: require('../../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
 
@@ -34,6 +39,21 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+  
+
+  useEffect(() => {
+    const run = async () => {
+      if (Platform.OS === 'android') {
+        await PermissionsAndroid.requestMultiple([
+          'android.permission.POST_NOTIFICATIONS',
+          'android.permission.BLUETOOTH_CONNECT',
+        ]);
+      }
+    };
+    run();
+  }, []);
+
+
 
   if (!loaded) {
     return null;
@@ -46,11 +66,18 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <AuthProvider>
+      <StreamClientProvider>
+        <CallsProvider>
+          <ThemeProvider
+            value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
+          >
+            <Stack>
+              <Stack.Screen name="(app)" options={{ headerShown: false }} />
+            </Stack>
+          </ThemeProvider>
+        </CallsProvider>
+      </StreamClientProvider>
+    </AuthProvider>
   );
 }
